@@ -6,12 +6,14 @@ window.calendar = (function(){
 	 * @param {object} name-value pairs to be set as attributes
 	 * @returns {HTMLElement}
 	 */
-	function makeEle(name, attrs){
-		var ele = document.createElement(name);
-		for(var i in attrs)
-			if(attrs.hasOwnProperty(i))
-				ele.setAttribute(i, attrs[i]);
-		return ele;
+	function createElement(name, attrs){
+		var element = document.createElement(name);
+		for (var i in attrs) {
+			if (attrs.hasOwnProperty(i)) {
+				element.setAttribute(i, attrs[i]);
+			}
+		}
+		return element;
 	}
 	
 	/**
@@ -85,11 +87,11 @@ window.calendar = (function(){
 			this._loadPrevMonth = this.loadPreviousMonth.bind(this);
 			
 			this._dayClicked = function(e){
-				var evtids = e.target.getAttribute('data-events').split(",");
+				var eventIds = e.target.getAttribute('data-events').split(",");
 				var evts = [];
-				for(var i=0; i<evtids.length; i++) 
-					if(this.events[evtids[i]]!==undefined) 
-						evts.push(this.events[evtids[i]]);
+				for(var i=0; i<eventIds.length; i++) 
+					if(this.events[eventIds[i]]!==undefined) 
+						evts.push(this.events[eventIds[i]]);
 				var date = new Date(this.year, this.month, e.target.getAttribute('data-day'));
 				this.onDayClick.call(this, date, evts);
 			}.bind(this);
@@ -298,105 +300,90 @@ window.calendar = (function(){
 			// Clear the element
 			this.elem.innerHTML = "";
 			this._eventGroups = [];
-			let firstDayofWeek = new Date(this.year, this.month, 1).getDay();
+			let firstDayofWeek  = new Date(this.year, this.month, 1).getDay();
 			let	lastDateOfMonth = new Date(this.year, this.month + 1, 0).getDate();
 			let	currentDate = 1;
-			let	currentDayOfWeek = 0;
 			let	currentWeek = 0;
+			let	currentDayOfWeek = 0;
 
 			// Draw title bar
-			let yearTitle = this.abbrYear ? "'" + ("" + this.year).substring(2,4) : this.year;
 			let monthArrayName = this.abbrMonth ? "monthsAbbr" : "monthsFull";
 			let monthTitle = this[monthArrayName][this.month];
-			let prevMonth = this.monthsAbbr[this.month-1] ? this.monthsAbbr[this.month-1] : this.monthsAbbr[11];
-			let nextMonth = this.monthsAbbr[this.month+1] ? this.monthsAbbr[this.month+1] : this.monthsAbbr[0];
-			this.elem.insertAdjacentHTML('beforeend', "<div class='cjs-weekRow cjs-calHeader'><div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-prevLink'>&vltri; "+ prevMonth + "</div><div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-nextLink'>" + nextMonth + " &vrtri;</div><div style='background:" + this.backgroundColor + "; color:" + this.textColor + ";' class='cjs-moTitle'>" + monthTitle + " " + yearTitle + "</div></div>");
+			let yearTitle  = this.abbrYear ? "'" + ("" + this.year).substring(2,4) : this.year;
+			let prevMonth  = this.monthsAbbr[this.month - 1] ? this.monthsAbbr[this.month - 1] : this.monthsAbbr[11];
+			let nextMonth  = this.monthsAbbr[this.month + 1] ? this.monthsAbbr[this.month + 1] : this.monthsAbbr[0];
+			this.elem.insertAdjacentHTML('beforeend', "<div class='cjs-weekRow cjs-calHeader'><div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-prevLink'>&vltri; "+ prevMonth + "</div><div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-nextLink'>" + nextMonth + " &vrtri;</div><div style='background:" + this.backgroundColor + "; color:" + this.textColor + ";' class='cjs-monthTitle'>" + monthTitle + " " + yearTitle + "</div></div>");
 			
-			// Draw day labels
+			// Draw day headers
+			var dayHeader = createElement("div", {class: "cjs-weekRow"});
+
 			var dayArrayName = this.abbrDay ? "daysOfWeekAbbr" : "daysOfWeekFull";
-			var dayNames = makeEle("div", {class: "cjs-weekRow"});
 			for (let i = 0; i < this[dayArrayName].length; i++) { 
 				let directionalClass = "";
-				if (i===6) directionalClass = " cjs-right cjs-top-right";
-				if (i===0) directionalClass += " cjs-top-left";
-				dayNames.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-left cjs-top cjs-bottom cjs-dayHeader" + directionalClass + "'><div class='cjs-dayHeaderCell'>" + this[dayArrayName][i] + "</div></div>");
+				if (i === 0) directionalClass = " cjs-top-left";
+				if (i === 6) directionalClass = " cjs-right cjs-top-right";
+				dayHeader.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-left cjs-top cjs-bottom cjs-dayHeader" + directionalClass + "'><div class='cjs-dayHeaderCell'>" + this[dayArrayName][i] + "</div></div>");
 			}
-			this.elem.appendChild(dayNames);
+			this.elem.appendChild(dayHeader);
 			
 			// Loop through weeks
 			while (currentDate <= lastDateOfMonth) {
+				// Draw a div for the week of the month
 				currentDayOfWeek = 0;
+				var week = createElement("div", {class: "cjs-weekRow calweekid" + currentWeek});
 
-				// draw a div for the week
-				var week = makeEle("div", {class: "cjs-weekRow calweekid" + currentWeek});
-
-				// draw days before the 1st of the month
+				// Draw blank days before the 1st of the month
 				while (currentDate === 1 && currentDayOfWeek < firstDayofWeek) {
 					week.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-blankday cjs-bottom cjs-left'><div class='cjs-dayContent'><div class='cjs-dayTable'><div class='cjs-dayCell'></div></div></div></div>");
 					currentDayOfWeek++;
 				}
 
-				// Store the events
+				// Loop through days of the week and store the events
 				let weekEvents = {};
-				let dayEvents = {};
-				
-				// Loop through days
 				while (currentDayOfWeek < 7 && currentDate <= lastDateOfMonth) {
 					// Get events
-					var evtids = [];
+					let eventIds = [];
 					for (var n = 0; n < this.events.length; n++) {	
-						if (!this.events[n].hasOwnProperty('date')) {
-							var morn = +(new Date(this.year, this.month, currentDate, 0, 0, 0));
-							var night = +(new Date(this.year, this.month, currentDate, 23, 59, 59));
-							var eventStart = +this.events[n].startDate;
-							var eventEnd = +this.events[n].endDate;
-							var startsToday = (eventStart >= morn && eventStart <= night);
-							var endsToday = (eventEnd >= morn && eventEnd <= night);
-							var continuesToday = (eventStart < morn && eventEnd > night);
-							if (startsToday || endsToday || continuesToday) {
-								if(!weekEvents.hasOwnProperty(n)) {
-									weekEvents[n] = {event: this.events[n], eventid: n};
-								}
-								if (startsToday) {
-									weekEvents[n].start = currentDayOfWeek;
-									weekEvents[n].startdayid = currentDate;
-								}	
-								if (currentDayOfWeek === 6 || endsToday) {
-									weekEvents[n].end = currentDayOfWeek;
-									weekEvents[n].enddayid = currentDate;
-								}
-								if (eventEnd > night && currentDate === lastDateOfMonth && currentDayOfWeek < 7) {
-									for (let z = 0; z < 7; z++) {
-										weekEvents[n].end = z;
-										weekEvents[n].enddayid = currentDate + (7 - currentDayOfWeek);
-									}
-								}								
-								evtids.push(n);
+						var currentDateStart = +(new Date(this.year, this.month, currentDate,  0,  0,  0));
+						var currentDateEnd   = +(new Date(this.year, this.month, currentDate, 23, 59, 59));
+
+						var eventStart  = +this.events[n].startDate;
+						var eventEnd    = +this.events[n].endDate;
+						var startsToday = (eventStart >= currentDateStart && eventStart <= currentDateEnd);
+						var endsToday   = (eventEnd >= currentDateStart && eventEnd <= currentDateEnd);
+						var continuesToday = (eventStart < currentDateStart && eventEnd > currentDateEnd);
+						if (startsToday || endsToday || continuesToday) {
+							if(!weekEvents.hasOwnProperty(n)) {
+								weekEvents[n] = {event: this.events[n], eventid: n};
 							}
-						} else {
-							var yearMatches = (this.events[n].date.getFullYear()===this.year);
-							var monthMatches = (this.events[n].date.getMonth()===this.month);
-							var dayMatches = (this.events[n].date.getDate()===currentDate);
-							if(yearMatches && monthMatches && dayMatches){
-								if(!dayEvents.hasOwnProperty(n)) dayEvents[n] = {event:this.events[n], startdayid:currentDate, enddayid:currentDate, start:currentDayOfWeek, end:currentDayOfWeek, eventid:n};
-								evtids.push(n);
+							if (startsToday) {
+								weekEvents[n].start = currentDayOfWeek;
+								weekEvents[n].startdayid = currentDate;
+							}	
+							if (currentDayOfWeek === 6 || endsToday) {
+								weekEvents[n].end = currentDayOfWeek;
+								weekEvents[n].enddayid = currentDate;
 							}
-						}
+							if (eventEnd > currentDateEnd && currentDate === lastDateOfMonth && currentDayOfWeek < 7) {
+								weekEvents[n].end = 6;
+								weekEvents[n].enddayid = currentDate + (6 - currentDayOfWeek);
+							}								
+							eventIds.push(n);
+						}	
 					}
 					
-					var isDisabled = this.disabledDates.includes(`${this.month + 1}/${currentDate}/${this.year}`);
+					// Round bottom-left and bottom-right corners of calendar
 					var directionalClass = "";
 					if (currentDayOfWeek === 6) directionalClass = " cjs-right";
-					if((lastDateOfMonth - currentDate) < 7){
-						if (currentDayOfWeek===0) directionalClass += " cjs-bottom-left";
-						if (currentDayOfWeek===6 && currentDate===lastDateOfMonth) directionalClass += " cjs-bottom-right";
-					} 
+					if (currentDayOfWeek === 0 && currentDate >= lastDateOfMonth - 6) directionalClass = " cjs-bottom-left";
+					if (currentDayOfWeek === 6 && currentDate === lastDateOfMonth) directionalClass += " cjs-bottom-right";
 
 					// Draw day
-					week.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-bottom cjs-left" + directionalClass + " " + (isDisabled ? 'cjs-blankday' : '') + "'><div class='cjs-dayContent'><div class='cjs-dayTable'><div style='color:" + this.textColor + ";' class='cjs-dayCell "+(isDisabled ? '' : 'cjs-calDay')+" cjs-dayCell"+currentDate+"' data-day='"+currentDate+"' data-events='"+(evtids.join(","))+"'><span class='cjs-dateLabel'>" + currentDate + "</span> </div></div></div></div>");
+					week.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-bottom cjs-left" + directionalClass + "'><div class='cjs-dayContent'><div class='cjs-dayTable'><div style='color:" + this.textColor + ";' class='cjs-dayCell cjs-calDay cjs-dayCell" + currentDate + "' data-day='"  +currentDate + "' data-events='" + (eventIds.join(",")) + "'><span class='cjs-dateLabel'>" + currentDate + "</span> </div></div></div></div>");
 					currentDate++;
 					currentDayOfWeek++;
 				}
+
 
 				// Draw empty days after last day of month
 				while (currentDayOfWeek < 7) {
@@ -409,43 +396,31 @@ window.calendar = (function(){
 				}
 				this.elem.appendChild(week);
 
-				// Draw weekEvents, dayEvents
-				for(let eid in weekEvents){
+
+				// Draw weekEvents
+				for (let eid in weekEvents) {
 					if(!weekEvents.hasOwnProperty(eid)) continue;
 					if(!weekEvents[eid].hasOwnProperty("start")){
 						weekEvents[eid].start = 0;
-						weekEvents[eid].startdayid=weekEvents[eid].enddayid-weekEvents[eid].end;
+						weekEvents[eid].startdayid = weekEvents[eid].enddayid - weekEvents[eid].end;
 					}
-					
 					weekEvents[eid].week = currentWeek;
+
 					var egid = this._eventGroups.length;
 					this._eventGroups.push(weekEvents[eid]);
-					var cls = (undefined===this.events[eid].type) ? "" : " "+this.events[eid].type;
-					var desc = this.events[eid].desc;
+					var cls   = (undefined === this.events[eid].type) ? "" : " " + this.events[eid].type;
+					var desc  = this.events[eid].desc;
 					let color = this.events[eid].color;
-					let progress = this.events[eid].progress * 100;
-					let progressPercent = progress + "%";
-					if(this.ellipse) desc = "<span>"+desc+"</span>", cls+=" cjs-ellipse";
+					let percentProgress = this.events[eid].progress * 100 + "%";
+					if (this.ellipse) desc = "<span>" + desc + "</span>", cls += " cjs-ellipse";
 					var evt = "<div style=\"border-color:" + this.borderColor + "\" class='cjs-calEvent" + egid + " cjs-calEvent" + cls + "' data-eventid='" + this._eventGroups[egid].eventid + "'>" + desc + "</div>";
 					week.insertAdjacentHTML('beforeend', evt);
 
-					let element = this.elem.getElementsByClassName('cjs-calEvent' + egid)[0];
+					let element = this.elem.getElementsByClassName('cjs-calEvent' + egid + ' cjs-calEvent' + cls)[0];
 					element.style.setProperty("--color", color);
-					element.style.setProperty("--progress", progressPercent);
-
+					element.style.setProperty("--progress", percentProgress);
 				}
 				
-				for(var eid in dayEvents){
-					if(!dayEvents.hasOwnProperty(eid)) continue;
-					dayEvents[eid].week = currentWeek;
-					var egid = this._eventGroups.length;
-					this._eventGroups.push(dayEvents[eid]);
-					var cls = (undefined===this.events[eid].type) ? "" : " "+this.events[eid].type;
-					var desc = this.events[eid].desc;
-					if(this.ellipse) desc = "<span>"+desc+"</span>", cls+=" cjs-ellipse";
-					var evt = "<div class='cjs-calEvent"+egid+" cjs-calEvent"+cls+"' data-eventid='"+this._eventGroups[egid].eventid+"'>"+desc+"</div>";
-					week.insertAdjacentHTML('beforeend', evt);
-				}
 				currentWeek++;
 			}
 			var wks = this.elem.getElementsByClassName("cjs-weekRow");
@@ -460,7 +435,7 @@ window.calendar = (function(){
 		_positionEventGroups(){
 			var eventPositions = {}; // available positions within the display area
 			var otherEvents = {}; // events that don't fit in the display area
-			
+
 			for(let i = 0; i < this._eventGroups.length; i++){
 				let e = this._eventGroups[i],
 					ele = this.elem.getElementsByClassName('cjs-calEvent'+i)[0],
@@ -468,48 +443,53 @@ window.calendar = (function(){
 					dayColHt = this.elem.getElementsByClassName("cjs-dayCol")[7].getBoundingClientRect().height,
 					dayColWd = this.elem.getElementsByClassName("cjs-dayCol")[7].getBoundingClientRect().width,
 					dateLabelHeight = this.elem.getElementsByClassName("cjs-dateLabel")[0].getBoundingClientRect().height,
-					evtHtOffset = ele.getBoundingClientRect().height+2,
-					paddingOffset = Math.floor((dayColHt-dayCellHt)/2),
-					top = 3+paddingOffset+dateLabelHeight,
-					left = 1+paddingOffset+(dayColWd*e.start),
+					evtHtOffset = ele.getBoundingClientRect().height + 2,
+					paddingOffset = Math.floor((dayColHt-dayCellHt) / 2),
+					top = 3 + paddingOffset + dateLabelHeight,
+					left = 1 + paddingOffset + (dayColWd*e.start),
 					width = ((e.end-e.start+1)*dayColWd)-(paddingOffset*3),
 					bottomBorder = dayColHt - paddingOffset;
 
 				// get the lowest event position available for every date in event
 				let posit = false;
 				let allAvail = [];
-				for(let n = e.startdayid; n <= e.enddayid; n++){
-					if(!eventPositions.hasOwnProperty(n)) eventPositions[n]=[];
+				for (let n = e.startdayid; n <= e.enddayid; n++) {
+					if (!eventPositions.hasOwnProperty(n)) eventPositions[n] = [];
 					// get the lowest available event position for this day
-					for(let x=0; x<=eventPositions[n].length; x++){
-						if(undefined===eventPositions[n][x]) eventPositions[n][x] = 0;
-						if(eventPositions[n][x]===0){
+					for (let x = 0; x <= eventPositions[n].length; x++) {
+						if (undefined === eventPositions[n][x]) eventPositions[n][x] = 0;
+						if (eventPositions[n][x] === 0) {
 							allAvail.push(x); 
 							break;
 						}
 					}
 				}
-				for(let aa=allAvail.length; aa--;){
-					if(posit===false) posit = allAvail[aa];
-					if(allAvail[aa]>posit) posit = allAvail[aa];
+
+				for (let aa = allAvail.length; aa--;) {
+					if (posit === false) posit = allAvail[aa];
+					if (allAvail[aa] > posit) posit = allAvail[aa];
 				}
+
 				// posit is now the lowest position available for every date
 				// make sure it fits
-				let eventBottom = top + (evtHtOffset*(1+posit))-2;
-				if(eventBottom > bottomBorder){
+				let eventBottom = top + (evtHtOffset * (1 + posit)) - 2;
+				if (eventBottom > bottomBorder) {
 					// event doesn't fit
 					let newendid = e.startdayid;
-					let newend = e.start;
+					let newend = 1;
 					let lastPositAvailable = false;
 					// see if event fits in any of the other cols
 					// if so shrink this one, reset the starting pos
 					// add "other events" counter to upper right of this date
 					// there is a position above, check if it's available
-					if(posit > 0){
+					if (posit > 0) {
 						// get the first available position for the first day of the event
-						for(let p=posit;p--;) if(eventPositions[e.startdayid][p]===0) lastPositAvailable=p;
+						for (let p = posit; p--;) {
+							if (eventPositions[e.startdayid][p] === 0) lastPositAvailable = p;
+						}
+
 						// if a higher position is available for the first date
-						if(lastPositAvailable!==false){
+						if (lastPositAvailable !== false) {
 							// check subsequent dates to see if the same position is available
 							// to figure out new end date
 							for(let n=e.startdayid; n<=e.enddayid; n++){
@@ -529,7 +509,7 @@ window.calendar = (function(){
 					}
 					// check newend and newposit and adjust event if possible
 					// or else add a +1 to the "other events" counter for this day
-					if(lastPositAvailable===false){
+					if (lastPositAvailable === false){
 						// no positions are available for this day
 						// add +1 to "other events" counter for this day ..check
 						// and if the is another day in the event 
@@ -577,6 +557,7 @@ window.calendar = (function(){
 						week.insertAdjacentHTML('beforeend', evt);
 						for(let n=e.startdayid; n<=e.enddayid; n++) eventPositions[n][lastPositAvailable] = 1;
 					}
+
 				} else {
 					// the event fits completely,
 					// update eventPositions for every day in the eventgroup
@@ -600,10 +581,12 @@ window.calendar = (function(){
 			}
 
 			// Draw otherEvents for events that didnt fit in the display
-			for(let date in otherEvents){
+			for (let date in otherEvents) {
 				if(!otherEvents.hasOwnProperty(date)) continue;
-				let d = this.elem.getElementsByClassName("cjs-dayCell" + date)[0];
-				d.insertAdjacentHTML('beforeend', '<div class="cjs-otherEvents">+' + otherEvents[date] + '</div>');
+				if (date > 0) {
+					let d = this.elem.getElementsByClassName("cjs-dayCell" + date)[0];
+					d.insertAdjacentHTML('beforeend', '<div class="cjs-otherEvents">+' + otherEvents[date] + '</div>');
+				}
 			}
 			return this;
 		}
@@ -628,11 +611,20 @@ window.calendar = (function(){
 			}
 
 			var events = this.elem.getElementsByClassName('cjs-calEvent');
-			for(let i=events.length; i--;){
+			for(let i = events.length; i--;) {
 				removeEventListener(events[i], 'click', this._eventClicked);
 				addEventListener(events[i], 'mouseenter', this._eventClicked);
 				addEventListener(events[i], 'mouseleave', this._eventMouseOut);
 			}
+
+			// var otherEvents = this.elem.getElementsByClassName('cjs-otherEvents');
+			// for(let i = otherEvents.length; i--;) {
+			// 	otherEvents[i].addEventListener('click', function() {
+			// 		this.classList.toggle("active");
+    		// 		var content = this.nextElementSibling;
+			// 		content.style.setProperty("--otherEventHeight", "150px");
+			// 	});
+			// }
 
 			return this;
 		}
@@ -714,7 +706,7 @@ Spotfire.initialize(async (mod) => {
 		let minDateArray = minDate.split("/");
 		var element = document.getElementById('calendar');
 		var options = {
-			month: minDateArray[1],
+			month: 11,
 			year: minDateArray[0],
 			abbrDay: false,
 			abbrMonth: false,
@@ -760,7 +752,8 @@ Spotfire.initialize(async (mod) => {
 					startDateFormatted: startDates[i],
 					endDateFormatted: endDates[i],
 					color: `${colorHexCode[i]}`,
-					progress: progress[i]
+					progress: progress[i],
+					type: `${colorValue[i]}`
 				})
 			}
 		}
