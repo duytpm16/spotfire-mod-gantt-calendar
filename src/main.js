@@ -42,7 +42,7 @@ window.calendar = (function(){
 	
 	class Calendar{
 		
-		constructor(elem, opts){
+		constructor(elem, opts) {
 			opts = opts || {};
 			
 			this._eventGroups = [];
@@ -66,6 +66,9 @@ window.calendar = (function(){
 			this.monthsFull = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 			this.monthsAbbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 			this.mode = opts.hasOwnProperty('mode') ? opts.mode : 'other';
+			this.hiddenEvents = {};
+			this.collapsed = true;
+			this.originalDayColHeight = 0;
 			
 			opts.events = opts.events || [];
 			for(var i=opts.events.length; i--;) this.addEvent(opts.events[i], false);
@@ -96,13 +99,13 @@ window.calendar = (function(){
 				this.onDayClick.call(this, date, evts);
 			}.bind(this);
 			
-			this._eventClicked = function(e){
+			this._eventMouseEnter = function(e){
 				var target = e.target.tagName === 'SPAN' ? e.target.parentElement : e.target;
 				var evtid = target.getAttribute('data-eventid');
 				this.onEventClick.call(this, this.events[evtid]);
 			}.bind(this);
 
-			this._eventMouseOut = function(e){
+			this._eventMouseLeave = function(e){
 				var target = e.target.tagName === 'SPAN' ? e.target.parentElement : e.target;
 				var evtid = target.getAttribute('data-eventid');
 				this.onEventMouseOut.call(this, this.events[evtid]);
@@ -170,6 +173,7 @@ window.calendar = (function(){
 		async loadNextMonth () {
 			this.month = this.month - 1 > -1 ? this.month - 1 : 11;
 			if (this.month === 11) this.year--;
+			Object.keys(this.hiddenEvents).forEach(key => delete this.hiddenEvents[key]);
 			await this.drawCalendar();
 			this.onMonthChanged.call(this, this.month + 1, this.year);
 			return this;
@@ -182,6 +186,7 @@ window.calendar = (function(){
 		async loadPreviousMonth(){
 			this.month = this.month + 1 > 11 ? 0 : this.month+1;
 			if(this.month===0) this.year++;
+			Object.keys(this.hiddenEvents).forEach(key => delete this.hiddenEvents[key]);
 			await this.drawCalendar();
 			this.onMonthChanged.call(this, this.month+1, this.year);
 			return this;
@@ -292,7 +297,7 @@ window.calendar = (function(){
 		 * Draw the calendar instance
 		 * @returns {calendarcalendar.Calendar@call;_setCalendarEvents@call;_positionEventGroups}
 		 */
-		async drawCalendar(){ 
+		async drawCalendar(dayColHeight = "auto"){ 
 			if(typeof this.beforeDraw === 'function'){
 				await this.beforeDraw();
 			}
@@ -322,7 +327,7 @@ window.calendar = (function(){
 				let directionalClass = "";
 				if (i === 0) directionalClass = " cjs-top-left";
 				if (i === 6) directionalClass = " cjs-right cjs-top-right";
-				dayHeader.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-left cjs-top cjs-bottom cjs-dayHeader" + directionalClass + "'><div class='cjs-dayHeaderCell'>" + this[dayArrayName][i] + "</div></div>");
+				dayHeader.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; color:" + this.textColor + "; border-color:" + this.borderColor +";' class='cjs-dayColHeader cjs-left cjs-top cjs-bottom cjs-dayHeader" + directionalClass + "'><div class='cjs-dayHeaderCell'>" + this[dayArrayName][i] + "</div></div>");
 			}
 			this.elem.appendChild(dayHeader);
 			
@@ -334,7 +339,7 @@ window.calendar = (function(){
 
 				// Draw blank days before the 1st of the month
 				while (currentDate === 1 && currentDayOfWeek < firstDayofWeek) {
-					week.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-blankday cjs-bottom cjs-left'><div class='cjs-dayContent'><div class='cjs-dayTable'><div class='cjs-dayCell'></div></div></div></div>");
+					week.insertAdjacentHTML('beforeend', "<div style='height: " + dayColHeight + "; background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-blankday cjs-bottom cjs-left'><div class='cjs-dayContent'><div class='cjs-dayTable'><div class='cjs-dayCell'></div></div></div></div>");
 					currentDayOfWeek++;
 				}
 
@@ -379,7 +384,8 @@ window.calendar = (function(){
 					if (currentDayOfWeek === 6 && currentDate === lastDateOfMonth) directionalClass += " cjs-bottom-right";
 
 					// Draw day
-					week.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-bottom cjs-left" + directionalClass + "'><div class='cjs-dayContent'><div class='cjs-dayTable'><div style='color:" + this.textColor + ";' class='cjs-dayCell cjs-calDay cjs-dayCell" + currentDate + "' data-day='"  +currentDate + "' data-events='" + (eventIds.join(",")) + "'><span class='cjs-dateLabel'>" + currentDate + "</span> </div></div></div></div>");
+					let id = "dayCol" + currentDate
+					week.insertAdjacentHTML('beforeend', "<div style='height: " + dayColHeight + "; background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' id='" + id + "' class='cjs-dayCol cjs-bottom cjs-left" + directionalClass + "'><div class='cjs-dayContent'><div class='cjs-dayTable'><div style='color:" + this.textColor + ";' class='cjs-dayCell cjs-calDay cjs-dayCell" + currentDate + "' data-day='"  +currentDate + "' data-events='" + (eventIds.join(",")) + "'><span class='cjs-dateLabel'>" + currentDate + "</span> </div></div></div></div>");
 					currentDate++;
 					currentDayOfWeek++;
 				}
@@ -391,7 +397,7 @@ window.calendar = (function(){
 					if (currentDayOfWeek === 6) {
 						directionalClass += " cjs-right cjs-bottom-right";
 					}
-					week.insertAdjacentHTML('beforeend', "<div style='background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-blankday cjs-bottom" + directionalClass + "'><div class='cjs-dayContent'><div class='cjs-dayTable'><div class='cjs-dayCell'></div></div></div></div>");
+					week.insertAdjacentHTML('beforeend', "<div style='height: " + dayColHeight + "; background:" + this.backgroundColor + "; border-color:" + this.borderColor +";' class='cjs-dayCol cjs-blankday cjs-bottom" + directionalClass + "'><div class='cjs-dayContent'><div class='cjs-dayTable'><div class='cjs-dayCell'></div></div></div></div>");
 					currentDayOfWeek++;
 				}
 				this.elem.appendChild(week);
@@ -436,6 +442,7 @@ window.calendar = (function(){
 			var eventPositions = {}; // available positions within the display area
 			var otherEvents = {}; // events that don't fit in the display area
 
+			let currentDayColHeight = 0;
 			for(let i = 0; i < this._eventGroups.length; i++){
 				let e = this._eventGroups[i],
 					ele = this.elem.getElementsByClassName('cjs-calEvent'+i)[0],
@@ -449,6 +456,8 @@ window.calendar = (function(){
 					left = 1 + paddingOffset + (dayColWd*e.start),
 					width = ((e.end-e.start+1)*dayColWd)-(paddingOffset*3),
 					bottomBorder = dayColHt - paddingOffset;
+
+				currentDayColHeight = dayColHt;
 
 				// get the lowest event position available for every date in event
 				let posit = false;
@@ -580,14 +589,41 @@ window.calendar = (function(){
 				ele.style.width = (width/w*100)+"%";
 			}
 
+
 			// Draw otherEvents for events that didnt fit in the display
-			for (let date in otherEvents) {
-				if(!otherEvents.hasOwnProperty(date)) continue;
+			if (Object.keys(this.hiddenEvents).length == 0) {
+				this.originalDayColHeight = currentDayColHeight;
+				for (let date in otherEvents) {
+					if(!otherEvents.hasOwnProperty(date)) continue;
+					if (date > 0) {
+						this.hiddenEvents[date] = otherEvents[date];
+					} 
+				}
+			} 
+
+			for (let date in this.hiddenEvents) {
+				if(!this.hiddenEvents.hasOwnProperty(date)) continue;
 				if (date > 0) {
 					let d = this.elem.getElementsByClassName("cjs-dayCell" + date)[0];
-					d.insertAdjacentHTML('beforeend', '<div class="cjs-otherEvents">+' + otherEvents[date] + '</div>');
-				}
+					let id = "otherEvents" + date;
+					let buttonText = ((this.collapsed) ? "+" : "-") + this.hiddenEvents[date];
+					d.insertAdjacentHTML('beforeend', '<button class="cjs-otherEvents" id="' + id + '">' + buttonText + '</button>');
+					let buttonElement = document.getElementById(id);
+					let dayColElement = document.getElementsByClassName("cjs-dayCol")[0];
+					buttonElement.addEventListener("click", () => {
+						if (dayColElement.style.height == "auto"){
+							let newDayColHeight = (this.originalDayColHeight + (this.hiddenEvents[date] * 20) + (this.hiddenEvents[date] * 1.5)) + "px"; 
+							this.collapsed = false;
+							this.drawCalendar(newDayColHeight);
+						} else {
+							this.collapsed = true;
+							this.drawCalendar("auto");
+						}
+					});
+				} 
 			}
+			
+
 			return this;
 		}
 		
@@ -612,19 +648,9 @@ window.calendar = (function(){
 
 			var events = this.elem.getElementsByClassName('cjs-calEvent');
 			for(let i = events.length; i--;) {
-				removeEventListener(events[i], 'click', this._eventClicked);
-				addEventListener(events[i], 'mouseenter', this._eventClicked);
-				addEventListener(events[i], 'mouseleave', this._eventMouseOut);
+				addEventListener(events[i], 'mouseenter', this._eventMouseEnter);
+				addEventListener(events[i], 'mouseleave', this._eventMouseLeave);
 			}
-
-			// var otherEvents = this.elem.getElementsByClassName('cjs-otherEvents');
-			// for(let i = otherEvents.length; i--;) {
-			// 	otherEvents[i].addEventListener('click', function() {
-			// 		this.classList.toggle("active");
-    		// 		var content = this.nextElementSibling;
-			// 		content.style.setProperty("--otherEventHeight", "150px");
-			// 	});
-			// }
 
 			return this;
 		}
@@ -706,7 +732,7 @@ Spotfire.initialize(async (mod) => {
 		let minDateArray = minDate.split("/");
 		var element = document.getElementById('calendar');
 		var options = {
-			month: 11,
+			month: minDateArray[1],
 			year: minDateArray[0],
 			abbrDay: false,
 			abbrMonth: false,

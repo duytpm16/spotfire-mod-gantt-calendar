@@ -83,6 +83,21 @@ body {
 .cjs-dayCol{
 	float:left;
     position: relative;
+	height: calc(100% + 100);
+    width: calc(100% / 7);
+    padding: 0% 0% calc(100% / 8) 0%; /* = width for a 1:1 aspect ratio */
+    margin: 0;
+    background-position:center center;
+    background-repeat:no-repeat;
+    background-size:cover; 
+	overflow:hidden;
+	background-color: #FFFFFF;
+	text-align: left;
+}
+
+.cjs-dayColHeader{
+	float:left;
+    position: relative;
 	height: auto;
     width: calc(100% / 7);
     padding: 0% 0% calc(100% / 7) 0%; /* = width for a 1:1 aspect ratio */
@@ -212,8 +227,6 @@ body {
 	margin:0;
 	padding:0;
 	float: right;
-	--otherEventHeight: auto;
-	height: var(--otherEventHeight);
 	font-size:1em;
 	background: #7FD2FF;
 	border-radius: 99px;
