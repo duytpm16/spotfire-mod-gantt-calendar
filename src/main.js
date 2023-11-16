@@ -67,6 +67,7 @@ window.calendar = (function(){
 			this.monthsAbbr = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 			this.mode = opts.hasOwnProperty('mode') ? opts.mode : 'other';
 			this.hiddenEvents = {};
+			this.maxHiddenEvents = 0;
 			this.collapsed = true;
 			this.originalDayColHeight = 0;
 			
@@ -547,7 +548,7 @@ window.calendar = (function(){
 						let oldend = e.end;
 						e.enddayid=newendid;
 						e.end=newend;
-						width = ((newend-e.start+1)*dayColHt)-(paddingOffset*3);
+						width = (dayColWd * e.start) - (paddingOffset*3);
 						posit = lastPositAvailable;
 						let egid = this._eventGroups.length;
 						this._eventGroups.push({
@@ -558,7 +559,7 @@ window.calendar = (function(){
 							event: e.event,
 							week: e.week
 						});
-						let cls = (undefined===e.event.type) ? "" : " "+e.event.type;
+						let cls = (undefined===e.event.type) ? "" : " " + e.event.type;
 						let desc = e.event.desc;
 						if(this.ellipse) desc = "<span>"+desc+"</span>", cls+=" cjs-ellipse";
 						var evt = "<div style=\"border-color:" + this.borderColor + "\" class='cjs-calEvent" + egid + " cjs-calEvent" + cls + "' data-eventid='" + this._eventGroups[egid].eventid + "'>" + desc + "</div>";
@@ -597,6 +598,9 @@ window.calendar = (function(){
 					if(!otherEvents.hasOwnProperty(date)) continue;
 					if (date > 0) {
 						this.hiddenEvents[date] = otherEvents[date];
+						if (otherEvents[date] > this.maxHiddenEvents) {
+							this.maxHiddenEvents = otherEvents[date];
+						}
 					} 
 				}
 			} 
@@ -605,14 +609,14 @@ window.calendar = (function(){
 				if(!this.hiddenEvents.hasOwnProperty(date)) continue;
 				if (date > 0) {
 					let d = this.elem.getElementsByClassName("cjs-dayCell" + date)[0];
-					let id = "otherEvents" + date;
+					let buttonId = "otherEvents" + date;
 					let buttonText = ((this.collapsed) ? "+" : "-") + this.hiddenEvents[date];
-					d.insertAdjacentHTML('beforeend', '<button class="cjs-otherEvents" id="' + id + '">' + buttonText + '</button>');
-					let buttonElement = document.getElementById(id);
+					d.insertAdjacentHTML('beforeend', '<button class="cjs-otherEvents" id="' + buttonId + '">' + buttonText + '</button>');
+					let buttonElement = document.getElementById(buttonId);
 					let dayColElement = document.getElementsByClassName("cjs-dayCol")[0];
 					buttonElement.addEventListener("click", () => {
 						if (dayColElement.style.height == "auto"){
-							let newDayColHeight = (this.originalDayColHeight + (this.hiddenEvents[date] * 20) + (this.hiddenEvents[date] * 1.5)) + "px"; 
+							let newDayColHeight = (this.originalDayColHeight + (this.maxHiddenEvents * 20) + (this.maxHiddenEvents * 3.0)) + "px"; 
 							this.collapsed = false;
 							this.drawCalendar(newDayColHeight);
 						} else {
